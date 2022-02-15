@@ -29,20 +29,27 @@ The program should get the input from the command line in this form:
 Command <Parameter>
 
 For example:
+```
 Cola Pepsi
 When the program starts, display the following output:
 Please Enter a command and its parameter
 (Type Help for list of commands, EXIT to quit)
 [SERVICE MODE]>
+```
   
 To get to the normal mode (assume password is 'nancy'):
+```
 [SERVICE MODE]>Lock nancy
+```
 
 To get back to the service mode:
+```
 [NORMAL MODE]>Unlock nancy
 [SERVICE MODE]>
+```
 
 Typing HELP will display the valid commands for the current mode.
+```
 [NORMAL MODE]>Help
 Commands in Normal Mode are:
 Coin <value> where value is 5 10 25 nickel dime quarter
@@ -57,9 +64,11 @@ Add [COLA|CUPS] brand <quantity>
 Add|Remove [Coins|Bills] <denomination> <quantity>
 Exit
 Lock [password]
+  ```
 
 The password is case sensitive. Commands and parameters are NOT case sensitive.
 Type Status in Service Mode to get the status of the vending machine inventory. For example:
+```
 [SERVICE MODE]>Status
 Amount Deposited = 0.000000
 total One Dollar Bills = 0
@@ -73,6 +82,7 @@ total RC = 0
 total Jolt = 0
 total Faygo = 0
 total Cups = 0
+```
   
   
 Submission Requirement:
