@@ -141,6 +141,9 @@
   <ItemGroup>
     <ClCompile Include="VendingMachine.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Vending_Machine_Class.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
