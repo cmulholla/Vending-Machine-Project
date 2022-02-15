@@ -2,7 +2,8 @@
 Class Project for creating a terminal-based vending machine
 Due March 15th 2022
 
-project description:
+
+# project description:
 Project Vending_Machine (100 points)
 Create a program that simulates a pop (soda) vending machine. This project gives insight into
 what it takes to design an operating system command line interpreter. The vending machine
