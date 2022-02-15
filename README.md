@@ -26,7 +26,9 @@ dispense the change along with the chosen drink, and subtract coins, bills, cups
 inventory. 
 
 The program should get the input from the command line in this form:
+```
 Command <Parameter>
+```
 
 For example:
 ```
