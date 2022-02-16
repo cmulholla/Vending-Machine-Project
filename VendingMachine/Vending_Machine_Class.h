@@ -58,12 +58,20 @@ std::string toLower(std::string str) { //lowercases the input string into the ou
 
 class vendingMachine { /////// Main Vending Machine Class ////////
 private:
+    ////// service mode functions //////
     void serviceHelp(std::string command = ""); // command that lists the functions.
     void serviceStatus(std::string args);       // command that lists the inventory.
     std::map<std::string, item> items;          // holds the inventory items.
+    std::string itemNames[128];
     void setMapPrices(std::string itemName);    // initialization function meant to set prices in the items map.
     std::map<std::string, std::pair<std::string, std::string>> commandDesc; //5 commands, first being the short description and second being the long description.
     std::string password;                       // holds the password if in normal mode for redundancy.
+    void addProduct(std::string args);          // command that adds pop or cups to the inventory
+    void addSubCash(std::string args, bool add = true);          // command that adds or removes cash from the inventory
+
+    
+    ////// normal mode functions //////
+
 public:
     vendingMachine();                           // init for inventory and help descriptions
 
@@ -163,8 +171,7 @@ void vendingMachine::serviceStatus(std::string args) {
         items["One Dollar Bills"].amount * 1.0 +
         items["Quarters"].amount * 0.25 +
         items["Dimes"].amount * 0.10 +
-        items["Nickels"].amount * 0.05 +
-        items["Pennies"].amount * 0.01 << std::endl;
+        items["Nickels"].amount * 0.05;
 
     // ouput the inventory file
     // TODO: make this better by outputting the map instead of the file, as the file will not be updated until the program is over (by file rewrite)
@@ -193,9 +200,6 @@ void vendingMachine::setMapPrices(std::string itemName)
     else if (itemName == "Five Dollar Bills") {
         items[itemName].price = 5;
     }
-    else if (itemName == "Pennies") {
-        items[itemName].price = 0.01;
-    }
     else if (itemName == "Nickels") {
         items[itemName].price = 0.05;
     }
@@ -211,6 +215,26 @@ void vendingMachine::setMapPrices(std::string itemName)
     else { // anything else will be a type of pop, each costing $0.75
         items[itemName].price = 0.75;
     }
+}
+
+void vendingMachine::addProduct(std::string args) // Add [ Cola | Cups ] command
+{
+    try {
+        if (args.substr(0, 4) == "cups") {
+            items["Cups"].amount += stoi(args.substr(args.find_last_of(" ")));
+        }
+        std::cout << "There are now " << items["Cups"].amount << " cups." << std::endl;
+
+
+    }
+    catch (std::exception &err) {
+        std::cout << "Please enter valid arguments." << std::endl;
+    }
+}
+
+void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Bills | Coins] command
+{
+
 }
 
 
@@ -249,13 +273,31 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
             if (args == "") { // output info on lock command if no password was given
                 serviceHelp(command);
             }
-            else {
+            else { // if password was given, then return it. Main will boot into normal mode.
+                password = args;
                 return args;
             }
         }
         else if (command == "status") { // status command
             serviceStatus(args);
         }
+        else if (command == "add") { // add and remove commands
+            //parse the args to determine what the user is adding
+            args = toLower(args); //lowercase the args
+            if (args.substr(0, 4) == "cola" || args.substr(0, 4) == "cups")      // Add [ Cola | Cups ] command
+                addProduct(args);
+            else if (args.substr(0, 5) == "coins" || args.substr(0, 5) == "bills") // Add | Remove [ Bills | Coins ] command (just the add command part though)
+                addSubCash(args, true);
+            else
+                std::cout << "Please enter valid arguments." << std::endl;
+        }
+        else if (command == "remove") { // Add | Remove command (just the remove command)
+            addSubCash(args, false);
+        }
+        else {
+            std::cout << "Invalid command." << std::endl;
+        }
+
 
     }
 }
