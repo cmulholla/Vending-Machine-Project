@@ -56,13 +56,24 @@ std::string toLower(std::string str) { //lowercases the input string into the ou
     return str;
 }
 
+std::string caseInsensitiveStr(std::vector<std::string> itemNames, std::string nameToMatch) { // returns the closest match in itemNames to nameToMatch. Picks the first value if there's two strings are the same.
+    for (int i = 0; i < itemNames.size(); i++)
+    {
+        if (toLower(itemNames[i]) == toLower(nameToMatch)) {
+            return itemNames[i];
+        }
+    }
+    // no item found, return a blank string.
+    return "";
+}
+
 class vendingMachine { /////// Main Vending Machine Class ////////
 private:
     ////// service mode functions //////
     void serviceHelp(std::string command = ""); // command that lists the functions.
     void serviceStatus(std::string args);       // command that lists the inventory.
     std::map<std::string, item> items;          // holds the inventory items.
-    std::string itemNames[128];
+    std::vector<std::string> itemNames;         // list of item names to make it easier to sort through all of the items. These are case-sensitive.
     void setMapPrices(std::string itemName);    // initialization function meant to set prices in the items map.
     std::map<std::string, std::pair<std::string, std::string>> commandDesc; //5 commands, first being the short description and second being the long description.
     std::string password;                       // holds the password if in normal mode for redundancy.
@@ -97,6 +108,7 @@ vendingMachine::vendingMachine() { //initialize the vending machine
                 name = line.substr(0, line.find_first_of(","));
             }
             setMapPrices(name);
+            itemNames.push_back(name);
             
         }
         inventoryFile.close();
@@ -115,7 +127,7 @@ vendingMachine::vendingMachine() { //initialize the vending machine
     std::string commandLongDesc[] = {
         "prints the inventory",
         "add pre-determined pop or cups to the machine",
-        "add money to the machine",
+        "add money to the machine\n    ex: Remove coins 25 7\n    This removes 7 quarters",
         "exits the program",
         "locks the machine with a password and boots into NORMAL mode"
     };
@@ -171,24 +183,12 @@ void vendingMachine::serviceStatus(std::string args) {
         items["One Dollar Bills"].amount * 1.0 +
         items["Quarters"].amount * 0.25 +
         items["Dimes"].amount * 0.10 +
-        items["Nickels"].amount * 0.05;
+        items["Nickels"].amount * 0.05
+        << std::endl;
 
-    // ouput the inventory file
-    // TODO: make this better by outputting the map instead of the file, as the file will not be updated until the program is over (by file rewrite)
-    std::ifstream inventoryFile("inventory.csv");
-    std::string line, name, itemAmount;
-    if (inventoryFile.is_open()) {
-        while (std::getline(inventoryFile, line))
-        {
-            //split the line into it's parts
-            if (line.find_first_of(",") != -1) {
-                itemAmount = line.substr(line.find_first_of(",") + 1);
-                name = line.substr(0, line.find_first_of(","));
-            }
-            std::cout << "Total " << name << ": " << itemAmount << std::endl;
-
-        }
-        inventoryFile.close();
+    // ouput the inventory
+    for (int i = 0; i < itemNames.size(); i++) {
+        std::cout << "Total " << itemNames[i] << ": " << items[itemNames[i]].amount << std::endl; // reminder; items is the inventory map, itemNames is a vector with item names.
     }
 }
 
@@ -222,19 +222,91 @@ void vendingMachine::addProduct(std::string args) // Add [ Cola | Cups ] command
     try {
         if (args.substr(0, 4) == "cups") {
             items["Cups"].amount += stoi(args.substr(args.find_last_of(" ")));
+            std::cout << "There are now " << items["Cups"].amount << " cups." << std::endl;
         }
-        std::cout << "There are now " << items["Cups"].amount << " cups." << std::endl;
+        else { // has to be cola because this function won't get called otherwise.
+            std::string brand = args.substr(5, args.find_last_of(" ") - 5); //brand name of item should be between position 5 and the last space.
+            std::string itemFound = caseInsensitiveStr(itemNames, brand);   //find the case-sensitive item name.
+            
+            // check to make sure the brand isn't money.
+            if (toLower(brand) == "pennies" ||
+                toLower(brand) == "nickels" ||
+                toLower(brand) == "dimes" ||
+                toLower(brand) == "quarters") {
+                std::cout << "I see what you're tring to do here. No, you can't do it this way.\nUse 'add coins [int denomination] [amount]' to do this." << std::endl;
+                return;
+            }
 
+            // no item found
+            if (itemFound == "") { //no item found with the input brand. ASK ABOUT THIS - I can take this out to add new brands of soda.
+                std::cout << "No item found with the name '" << brand << "'." << std::endl;
+                return;
+                items[brand].amount = 0; //This code only executes if the professor says that I should do it like this.
+                items[brand].price = 0.75;
+                items[brand].amount += stoi(args.substr(args.find_last_of(" "))); //amount of items to add
+                std::cout << "There are now " << items[itemFound].amount << " cups worth of " << brand << "." << std::endl;
+                return;
+            }
 
+            items[itemFound].amount += stoi(args.substr(args.find_last_of(" "))); //amount of items to add
+            std::cout << "There are now " << items[itemFound].amount << " cups worth of " << itemFound << "." << std::endl;
+        }
     }
-    catch (std::exception &err) {
+    catch (std::exception &err) { //catches if stoi() failed, meaning the user did not input a number.
         std::cout << "Please enter valid arguments." << std::endl;
     }
 }
 
-void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Bills | Coins] command
+void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Coins | Bills] <denomination> <quantity> command
 {
+    try {
+        std::string denomination;
+        int amount = std::stoi(args.substr(args.find_last_of(" ")));
+        if (toLower(args.substr(0, 5)) == "bills") { //add bills
+            if (std::stoi(args.substr(6, args.find_last_of(" "))) == 1) { // one dollar bill
+                denomination = "One Dollar Bills";
+            }
+            else if (std::stoi(args.substr(6, args.find_last_of(" "))) == 5) { // five dollar bills
+                denomination = "Five Dollar Bills";
+            }
+            else {
+                std::cout << "Please input a correct denomination. [1 | 5]" << std::endl;
+                return;
+            }
+        }
+        else { //has to be coins, as the function will not be called otherwise.
+            if (std::stoi(args.substr(6, args.find_last_of(" "))) == 5) { // nickels
+                denomination = "Nickels";
+            }
+            else if (std::stoi(args.substr(6, args.find_last_of(" "))) == 10) { // dimes
+                denomination = "Dimes";
+            }
+            else if (std::stoi(args.substr(6, args.find_last_of(" "))) == 25) { // quarters
+                denomination = "Quarters";
+            }
+        }
 
+
+        if (add) { //add currency
+            items[denomination].amount += amount;
+            std::cout << "Added " << amount << " " << denomination << "." << std::endl;
+        }
+        else { //remove currency
+            //if you attempt to remove more than there are, it just removes all of them.
+            if (items[denomination].amount < amount) {
+                std::cout << "Removed " << items[denomination].amount << " " << denomination << "." << std::endl;
+                items[denomination].amount = 0;
+            }
+            else { //remove a specific amount of currency.
+                items[denomination].amount -= amount;
+                std::cout << "Removed " << amount << " " << denomination << "." << std::endl;
+            }
+        }
+        std::cout << items[denomination].amount << " " << denomination << " currently in the machine." << std::endl;
+    }
+    catch (std::exception& err) {
+        std::cout << "Please enter valid arguments." << std::endl;
+    }
 }
 
 
@@ -250,6 +322,9 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
     while (true) {
         std::cout << "[SERVICE MODE]>";
         std::getline(std::cin, command);
+
+        if (command == "") // literlly nothing found. This is an edge case. go back to the start of the while loop
+            continue;
 
         command = normalizeWhitespace(command);
 
