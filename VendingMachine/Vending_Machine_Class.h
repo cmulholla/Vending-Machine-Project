@@ -83,6 +83,9 @@ private:
     ////// normal mode functions //////
     void normalHelp(std::string command = "");
     std::map<std::string, std::pair<std::string, std::string>> commandDescNormal; //same as commandDesc, but holds descriptions for the normal mode functions instead.
+    void insertCoin(std::string args);
+    void insertBill(std::string args);
+    void chooseCola(std::string args);
 
 
 public:
@@ -365,6 +368,18 @@ inline void vendingMachine::normalHelp(std::string command) { //select a specifi
     std::cout << "Command does not exist." << std::endl;
 }
 
+inline void vendingMachine::insertCoin(std::string args)
+{
+}
+
+inline void vendingMachine::insertBill(std::string args)
+{
+}
+
+inline void vendingMachine::chooseCola(std::string args)
+{
+}
+
 ////// Public Functions //////
 
 std::string vendingMachine::serviceMode(std::string userPassword) {
@@ -463,7 +478,6 @@ std::string vendingMachine::normalMode() {
                 normalHelp(command);
             }
             else { // if password was given, then return it. Main will boot into normal mode.
-                password = args;
                 return args;
             }
         }
