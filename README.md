@@ -60,7 +60,9 @@ Cola <value> where value is coke pepsi rc jolt faygo
 Exit
 Unlock [password]
 [SERVICE MODE]>Help
+```
 Commands in Service Mode are:
+```
 Status
 Add [COLA|CUPS] brand <quantity>
 Add|Remove [Coins|Bills] <denomination> <quantity>
