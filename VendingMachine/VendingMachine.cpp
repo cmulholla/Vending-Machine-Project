@@ -12,11 +12,15 @@ int main()
     
 
     // Vending Machine starts in service mode
-    std::string newPassword;
-    newPassword = machine.serviceMode("");
-    if (newPassword == "")
-        return 0;
-    else
-        std::cout << "new password is: " << newPassword << std::endl;
+    std::string newPassword, userPassword = "";
+    do {
+        newPassword = machine.serviceMode(newPassword);
+        if (newPassword == "")
+            return 0;
+        else
+            std::cout << "new password is: " << newPassword << std::endl;
+
+        userPassword = machine.normalMode();
+    } while (newPassword != "" && userPassword != "");
     
 }

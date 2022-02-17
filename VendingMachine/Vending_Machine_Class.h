@@ -79,9 +79,11 @@ private:
     std::string password;                       // holds the password if in normal mode for redundancy.
     void addProduct(std::string args);          // command that adds pop or cups to the inventory
     void addSubCash(std::string args, bool add = true);          // command that adds or removes cash from the inventory
-
     
     ////// normal mode functions //////
+    void normalHelp(std::string command = "");
+    std::map<std::string, std::pair<std::string, std::string>> commandDescNormal; //same as commandDesc, but holds descriptions for the normal mode functions instead.
+
 
 public:
     vendingMachine();                           // init for inventory and help descriptions
@@ -125,11 +127,11 @@ vendingMachine::vendingMachine() { //initialize the vending machine
     };
 
     std::string commandLongDesc[] = {
-        "prints the inventory",
-        "add pre-determined pop or cups to the machine",
-        "add money to the machine\n    ex: Remove coins 25 7\n    This removes 7 quarters",
-        "exits the program",
-        "locks the machine with a password and boots into NORMAL mode"
+        "Prints the inventory",
+        "Add pre-determined pop or cups to the machine",
+        "Add money to the machine\n    ex: Remove coins 25 7\n    This removes 7 quarters",
+        "Exits the program",
+        "Locks the machine with a password and boots into NORMAL mode"
     };
 
     //set the descriptions to the map
@@ -139,6 +141,29 @@ vendingMachine::vendingMachine() { //initialize the vending machine
     commandDesc["exit"] = { commandList[3], commandLongDesc[3] };
     commandDesc["lock"] = { commandList[4], commandLongDesc[4] };
 
+    // normal mode help functions
+    std::string commandListNormal[] = { 
+        "Coin <value> where value is [5 | 10 | 25 | nickel | dime | quarter]",
+        "Bill <value> where value is [1 | 5]",
+        "Cola <value> where value is [coke | pepsi | rc | jolt | faygo]",
+        "Exit",
+        "Unlock [password]"
+    };
+
+    std::string commandLongDescNormal[] = {
+        "Insert a coin into the machine",
+        "Insert a bill into the machine",
+        "Select a soda to buy",
+        "Exits the program (why are we letting users exit the machine?)",
+        "Unlocks the machine with a password and boots into SERVICE mode with the correct password"
+    };
+
+    //set the descriptions to the normal mode map
+    commandDescNormal["coin"] = { commandListNormal[0], commandLongDescNormal[0] };
+    commandDescNormal["bill"] = { commandListNormal[1], commandLongDescNormal[1] };
+    commandDescNormal["cola"] = { commandListNormal[2], commandLongDescNormal[2] };
+    commandDescNormal["exit"] = { commandListNormal[3], commandLongDescNormal[3] };
+    commandDescNormal["unlock"] = { commandListNormal[4], commandLongDescNormal[4] };
 }
 
 void vendingMachine::serviceHelp(std::string command) { //select a specific command to get help on, or leave blank to get all of the functions
@@ -259,6 +284,7 @@ void vendingMachine::addProduct(std::string args) // Add [ Cola | Cups ] command
 
 void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Coins | Bills] <denomination> <quantity> command
 {
+    // TODO: add functionality so both 25 and 'quarters' are valid inputs. only 25 is available right now.
     try {
         std::string denomination;
         int amount = std::stoi(args.substr(args.find_last_of(" ")));
@@ -309,7 +335,37 @@ void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Coi
     }
 }
 
+////// Normal Mode Functions ///////
 
+inline void vendingMachine::normalHelp(std::string command) { //select a specific command to get help on, or leave blank to get all of the functions
+
+    //output all of the function descriptions if there's no arguments
+    if (command == "") {
+        std::cout << "Commands in Normal Mode are:" << std::endl;
+        std::cout << commandDescNormal["coin"].first << std::endl << "    >" << commandDescNormal["coin"].second << std::endl << std::endl;
+        std::cout << commandDescNormal["bill"].first << std::endl << "    >" << commandDescNormal["bill"].second << std::endl << std::endl;
+        std::cout << commandDescNormal["cola"].first << std::endl << "    >" << commandDescNormal["cola"].second << std::endl << std::endl;
+        std::cout << commandDescNormal["exit"].first << std::endl << "    >" << commandDescNormal["exit"].second << std::endl << std::endl;
+        std::cout << commandDescNormal["unlock"].first << std::endl << "    >" << commandDescNormal["unlock"].second << std::endl << std::endl;
+        return;
+    }
+
+    //if the command is specified, lowercase it
+    command = toLower(command);
+
+    //output only the specified command, if it exists
+    if (commandDescNormal.count(command)) {
+        std::cout << command << " command:" << std::endl;
+
+        //output the description of the command
+        std::cout << commandDescNormal[command].first << std::endl << "    >" << commandDescNormal[command].second << std::endl << std::endl;
+        return;
+    }
+    else //if the command does not exit, display a message
+    std::cout << "Command does not exist." << std::endl;
+}
+
+////// Public Functions //////
 
 std::string vendingMachine::serviceMode(std::string userPassword) {
     // TODO: comment (haha)
@@ -372,12 +428,64 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
         else {
             std::cout << "Invalid command." << std::endl;
         }
-
-
     }
 }
 
 std::string vendingMachine::normalMode() {
-    return "";
+    std::string command, args;
+    while (true) {
+        std::cout << "[NORMAL MODE]>";
+        std::getline(std::cin, command);
+
+        if (command == "") // literlly nothing found. This is an edge case. go back to the start of the while loop
+            continue;
+
+        command = normalizeWhitespace(command);
+
+        //split the command into it's arguments
+        if (command.find_first_of(" ") != -1) {
+            args = command.substr(command.find_first_of(" ") + 1);
+            command = command.substr(0, command.find_first_of(" "));
+        }
+        else // didn't find any arguments
+            args = "";
+
+        // lowercase the command
+        command = toLower(command);
+
+
+        if (command == "help")          // help command
+            normalHelp(args);
+        else if (command == "exit")     // exit command
+            return "";
+        else if (command == "unlock") {   // lock command
+            if (args == "") { // output info on lock command if no password was given
+                normalHelp(command);
+            }
+            else { // if password was given, then return it. Main will boot into normal mode.
+                password = args;
+                return args;
+            }
+        }
+        else if (command == "status") { // status command
+            serviceStatus(args);
+        }
+        else if (command == "add") { // add and remove commands
+            //parse the args to determine what the user is adding
+            args = toLower(args); //lowercase the args
+            if (args.substr(0, 4) == "cola" || args.substr(0, 4) == "cups")      // Add [ Cola | Cups ] command
+                addProduct(args);
+            else if (args.substr(0, 5) == "coins" || args.substr(0, 5) == "bills") // Add | Remove [ Bills | Coins ] command (just the add command part though)
+                addSubCash(args, true);
+            else
+                std::cout << "Please enter valid arguments." << std::endl;
+        }
+        else if (command == "remove") { // Add | Remove command (just the remove command)
+            addSubCash(args, false);
+        }
+        else {
+            std::cout << "Invalid command." << std::endl;
+        }
+    }
 }
 
