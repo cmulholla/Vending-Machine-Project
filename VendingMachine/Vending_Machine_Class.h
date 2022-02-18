@@ -70,23 +70,27 @@ std::string caseInsensitiveStr(std::vector<std::string> itemNames, std::string n
 class vendingMachine { /////// Main Vending Machine Class ////////
 private:
     ////// service mode functions //////
-    void serviceHelp(std::string command = ""); // command that lists the functions.
+    void serviceHelp(std::string command = ""); // command that lists the service mode functions.
     void serviceStatus(std::string args);       // command that lists the inventory.
-    std::map<std::string, item> items;          // holds the inventory items.
-    std::vector<std::string> itemNames;         // list of item names to make it easier to sort through all of the items. These are case-sensitive.
     void setMapPrices(std::string itemName);    // initialization function meant to set prices in the items map.
-    std::map<std::string, std::pair<std::string, std::string>> commandDesc; //5 commands, first being the short description and second being the long description.
-    std::string password;                       // holds the password if in normal mode for redundancy.
     void addProduct(std::string args);          // command that adds pop or cups to the inventory
     void addSubCash(std::string args, bool add = true);          // command that adds or removes cash from the inventory
+
+    // service mode global variables
+    std::map<std::string, item> items;          // holds the inventory items.
+    std::vector<std::string> itemNames;         // list of item names to make it easier to sort through all of the items. These are case-sensitive.
+    std::map<std::string, std::pair<std::string, std::string>> commandDesc; //5 commands, first being the short description and second being the long description.
+    std::string password;                       // holds the password if in normal mode for redundancy.
     
     ////// normal mode functions //////
-    void normalHelp(std::string command = "");
-    std::map<std::string, std::pair<std::string, std::string>> commandDescNormal; //same as commandDesc, but holds descriptions for the normal mode functions instead.
-    void insertCoin(std::string args);
-    void insertBill(std::string args);
-    void chooseCola(std::string args);
+    void normalHelp(std::string command = "");  // command that lists the normal mode functions
+    void insertCoin(std::string args);          // command that inserts coins into the machine. Adds value to cashInserted and adds coin into items.
+    void insertBill(std::string args);          // command that inserts bills into the machine. Adds value to cashInserted and adds bill into items.
+    void chooseCola(std::string args);          // command that allows user to buy a cola.
 
+    // normal mode global variables
+    std::map<std::string, std::pair<std::string, std::string>> commandDescNormal; //same as commandDesc, but holds descriptions for the normal mode functions instead.
+    float cashInserted; // stores how much money the user has inputted into the machine.
 
 public:
     vendingMachine();                           // init for inventory and help descriptions
@@ -101,6 +105,7 @@ vendingMachine::vendingMachine() { //initialize the vending machine
     std::cout << "(Type Help for list of commands, Exit to quit)" << std::endl;
 
     // initialize the inventory items
+    cashInserted = 0;
     std::string line;
     std::ifstream inventoryFile("inventory.csv");
     std::string name, itemAmount;
@@ -340,7 +345,7 @@ void vendingMachine::addSubCash(std::string args, bool add) // Add | Remove [Coi
 
 ////// Normal Mode Functions ///////
 
-inline void vendingMachine::normalHelp(std::string command) { //select a specific command to get help on, or leave blank to get all of the functions
+void vendingMachine::normalHelp(std::string command) { //select a specific command to get help on, or leave blank to get all of the functions
 
     //output all of the function descriptions if there's no arguments
     if (command == "") {
@@ -368,16 +373,67 @@ inline void vendingMachine::normalHelp(std::string command) { //select a specifi
     std::cout << "Command does not exist." << std::endl;
 }
 
-inline void vendingMachine::insertCoin(std::string args)
+void vendingMachine::insertCoin(std::string args) //user mode function to input coins into the machine
 {
+    args = toLower(args);
+    if (args == "5" || args == "nickel") { //user inputs a nickel
+        items["Nickels"].amount++;
+        cashInserted += 0.05;
+        std::cout << "Nickel inserted." << std::endl;
+    }
+    else if (args == "10" || args == "dime") { //user inputs a dime
+        items["Dimes"].amount++;
+        cashInserted += 0.10;
+        std::cout << "Dime inserted." << std::endl;
+    }
+    else if (args == "25" || args == "quarter") { //user inputs a quarter
+        items["Quarters"].amount++;
+        cashInserted += 0.25;
+        std::cout << "Quarter inserted." << std::endl;
+    }
+    else { //user did not enter a correct value.
+        //ouput usage of the coin function
+        std::cout << "incorrect input value." << std::endl;
+        normalHelp("coin");
+        return;
+    }
+
+    //output the total cash the user has input into the machine.
+    std::cout << "Total cash: $" << cashInserted << std::endl;
 }
 
-inline void vendingMachine::insertBill(std::string args)
+void vendingMachine::insertBill(std::string args) //user mode function to insert bills into the machine
 {
+    //TODO: if there's not enough change in the machine, spit back all bills.
+    args = toLower(args);
+    if (args == "1") { //user inputs a $1 bill
+        items["One Dollar Bills"].amount++;
+        cashInserted += 1;
+        std::cout << "One Dollar Bill inserted." << std::endl;
+    }
+    else if (args == "5") { //user inputs a $5 bill
+        items["Five Dollar Bills"].amount++;
+        cashInserted += 5;
+        std::cout << "Five Dollar Bill inserted." << std::endl;
+    }
+    else { //user did not enter a correct value.
+        //ouput usage of the bill function
+        std::cout << "incorrect input value." << std::endl;
+        normalHelp("bill");
+        return;
+    }
+
+    //output the total cash the user has input into the machine.
+    std::cout << "Total cash: $" << cashInserted << std::endl;
 }
 
-inline void vendingMachine::chooseCola(std::string args)
+void vendingMachine::chooseCola(std::string args) 
 {
+    //choose a cola to trade cashInserted for cola. 
+    //If there's not enough money, then ask for more. 
+    //If they entered too much, then give the pop and output the extra cash.
+
+
 }
 
 ////// Public Functions //////
@@ -385,7 +441,7 @@ inline void vendingMachine::chooseCola(std::string args)
 std::string vendingMachine::serviceMode(std::string userPassword) {
     // TODO: comment (haha)
     if (password != userPassword) {
-        std::cout << "Password does not match." << std::endl;
+        std::cout << "Invalid password, try again." << std::endl;
         return password;
     }
 
@@ -452,7 +508,7 @@ std::string vendingMachine::normalMode() {
         std::cout << "[NORMAL MODE]>";
         std::getline(std::cin, command);
 
-        if (command == "") // literlly nothing found. This is an edge case. go back to the start of the while loop
+        if (command == "") // literlly nothing inputted. This is an edge case. go back to the start of the while loop
             continue;
 
         command = normalizeWhitespace(command);
@@ -481,21 +537,14 @@ std::string vendingMachine::normalMode() {
                 return args;
             }
         }
-        else if (command == "status") { // status command
-            serviceStatus(args);
+        else if (command == "coin") { // coin command
+            insertCoin(args);
         }
-        else if (command == "add") { // add and remove commands
-            //parse the args to determine what the user is adding
-            args = toLower(args); //lowercase the args
-            if (args.substr(0, 4) == "cola" || args.substr(0, 4) == "cups")      // Add [ Cola | Cups ] command
-                addProduct(args);
-            else if (args.substr(0, 5) == "coins" || args.substr(0, 5) == "bills") // Add | Remove [ Bills | Coins ] command (just the add command part though)
-                addSubCash(args, true);
-            else
-                std::cout << "Please enter valid arguments." << std::endl;
+        else if (command == "bill") { // bill commands
+            insertBill(args);
         }
-        else if (command == "remove") { // Add | Remove command (just the remove command)
-            addSubCash(args, false);
+        else if (command == "cola") { // cola command
+            chooseCola(args);
         }
         else {
             std::cout << "Invalid command." << std::endl;
