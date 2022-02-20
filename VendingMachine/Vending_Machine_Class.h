@@ -87,6 +87,7 @@ private:
     void insertCoin(std::string args);          // command that inserts coins into the machine. Adds value to cashInserted and adds coin into items.
     void insertBill(std::string args);          // command that inserts bills into the machine. Adds value to cashInserted and adds bill into items.
     void chooseCola(std::string args);          // command that allows user to buy a cola.
+    void returnCash();                          // function only for returning the amount of cash to the customer equal to the cashInserted variable.
 
     // normal mode global variables
     std::map<std::string, std::pair<std::string, std::string>> commandDescNormal; //same as commandDesc, but holds descriptions for the normal mode functions instead.
@@ -404,7 +405,6 @@ void vendingMachine::insertCoin(std::string args) //user mode function to input 
 
 void vendingMachine::insertBill(std::string args) //user mode function to insert bills into the machine
 {
-    //TODO: if there's not enough change in the machine, spit back all bills.
     args = toLower(args);
     if (args == "1") { //user inputs a $1 bill
         items["One Dollar Bills"].amount++;
@@ -432,7 +432,57 @@ void vendingMachine::chooseCola(std::string args)
     //choose a cola to trade cashInserted for cola. 
     //If there's not enough money, then ask for more. 
     //If they entered too much, then give the pop and output the extra cash.
+    //If there isn't enough change in the machine, then give back the bills instead of the pop.
 
+    // find the itemName for the pop they wanted to buy
+    std::string popChosen = "";
+    for (int i = 0; i < itemNames.size(); i++) {
+        if (toLower(itemNames[i]) == toLower(args)) { //break out of the loop once the pop has been found, as well as set the name to the variable.
+            popChosen = itemNames[i];
+            break;
+        }
+    }
+
+    //input pop still the default string, so the pop was not found.
+    if (popChosen == "") {
+        std::cout << "Pop not found." << std::endl;
+        return;
+    }
+
+    //pop found, continue
+    items[popChosen].amount--;
+
+}
+
+void vendingMachine::returnCash() //return the cash equal to the amount of cash in the cashInserted variable. do nothing if there's not enough change.
+{
+    std::vector<std::string> cashNames = { "Five Dollar Bills",
+        "One Dollar Bills",
+        "Quarters",
+        "Dimes",
+        "Nickels" };
+
+    //find if there's enough change.
+    float tempChange = 0;
+    int cashNum = 0;
+    while (tempChange != cashInserted) { //redo this with a for statement starting at highest denomination and working it's way lower
+        cashNum = 0;
+        while (items[cashNames[cashNum]].price > cashInserted || items[cashNames[cashNum]].amount == 0) { //find the denomination of cash in the machine closest to the amount of cash inserted. has to be a lower number than the cash inserted.
+            cashNum++;
+        }
+        if (items[cashNames[cashNum]].amount * items[cashNames[cashNum]].price <= cashInserted) { //use all of the rest of this denomination
+            tempChange += items[cashNames[cashNum]].amount * items[cashNames[cashNum]].price;
+        }
+        else { //sum of denomination is greater than item input
+            //if I have 10 quarters and 0 $1 bills and I need to output $1.20, then output 4 quarters (and 2 dimes if I have them)
+            while (tempChange < cashInserted) {
+                tempChange += items[cashNames[cashNum]].price;
+            }
+            //it'll overflow by 1, so minus it off
+            tempChange -= items[cashNames[cashNum]].price;
+        }
+
+    }
 
 }
 
