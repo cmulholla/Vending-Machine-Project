@@ -552,6 +552,8 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
     }
 }
 
+// test comment
+
 std::string vendingMachine::normalMode() {
     std::string command, args;
     while (true) {
