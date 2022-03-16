@@ -22,5 +22,7 @@ int main()
 
         userPassword = machine.normalMode();
     } while (newPassword != "" && userPassword != "");
+
+    //save the vending machine inventory before the program closes
     
 }

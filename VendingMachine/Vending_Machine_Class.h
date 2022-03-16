@@ -18,9 +18,12 @@ std::string normalizeWhitespace(std::string command) {
     // no more than 1 consecutive spaces in the middle of the command
 
     //fix leading whitespace
-    while (command[0] == ' ') {
+    while (command.size() > 0 && command[0] == ' ') {
         command.erase(0, 1);
     }
+
+    if (command.size() == 0)
+        return "";
 
     //fix trailing whitespace
     while (command.back() == ' ') {
@@ -96,6 +99,7 @@ private:
 public:
     vendingMachine();                           // init for inventory and help descriptions
 
+    void saveInventory();                       // allows main to save the inventory. Overwrites the old Inventory file. Gets called after the Exit function.
     std::string serviceMode(std::string userPassword);  // puts the terminal into service mode. Returns the password, input has to be the same password.
     std::string normalMode();                           // puts the terminal into normal mode. Returns the password for input into service mode.
 };
@@ -120,6 +124,7 @@ vendingMachine::vendingMachine() { //initialize the vending machine
             }
             setMapPrices(name);
             itemNames.push_back(name);
+            items[name].amount = stoi(itemAmount);
             
         }
         inventoryFile.close();
@@ -163,7 +168,7 @@ vendingMachine::vendingMachine() { //initialize the vending machine
         "Insert a coin into the machine",
         "Insert a bill into the machine",
         "Select a soda to buy",
-        "Exits the program (why are we letting users exit the machine?)",
+        "Exits the program",
         "Unlocks the machine with a password and boots into SERVICE mode with the correct password"
     };
 
@@ -376,21 +381,46 @@ void vendingMachine::normalHelp(std::string command) { //select a specific comma
 
 void vendingMachine::insertCoin(std::string args) //user mode function to input coins into the machine
 {
+
     args = toLower(args);
     if (args == "5" || args == "nickel") { //user inputs a nickel
         items["Nickels"].amount++;
         cashInserted += 0.05;
         std::cout << "Nickel inserted." << std::endl;
+        if (items["Cups"].amount == 0) { //check for cups
+            std::cout << "No cups in the machine, returning cash.\n";
+            std::cout << "Returning: $" << items["Nickels"].price << std::endl;
+            items["Nickels"].amount--;
+            cashInserted -= 0.05;
+        }
     }
     else if (args == "10" || args == "dime") { //user inputs a dime
         items["Dimes"].amount++;
         cashInserted += 0.10;
         std::cout << "Dime inserted." << std::endl;
+        if (items["Cups"].amount == 0) { //check for cups
+            std::cout << "No cups in the machine, returning cash.\n";
+            std::cout << "Returning: $" << items["Dimes"].price << std::endl;
+            items["Dimes"].amount--;
+            cashInserted -= 0.10;
+        }
+        else if (items["Nickels"].amount == 0) { //edge case where person inserts 8 dimes with no nickels, so don't accept dimes unless there's a nickel
+            std::cout << "No nickels in storage, cannot accept dimes at this moment." << std::endl;
+            std::cout << "Returned: $0.10" << std::endl;
+            items["Dimes"].amount--;
+            cashInserted -= 0.10;
+        }
     }
     else if (args == "25" || args == "quarter") { //user inputs a quarter
         items["Quarters"].amount++;
         cashInserted += 0.25;
         std::cout << "Quarter inserted." << std::endl;
+        if (items["Cups"].amount == 0) { //check for cups
+            std::cout << "No cups in the machine, returning cash.\n";
+            std::cout << "Returning: $" << items["Quarters"].price << std::endl;
+            items["Quarters"].amount--;
+            cashInserted -= 0.25;
+        }
     }
     else { //user did not enter a correct value.
         //ouput usage of the coin function
@@ -405,16 +435,32 @@ void vendingMachine::insertCoin(std::string args) //user mode function to input 
 
 void vendingMachine::insertBill(std::string args) //user mode function to insert bills into the machine
 {
-    args = toLower(args);
+    if (items["Cups"].amount == 0) {
+        std::cout << "No cups in the machine, returning cash.\n";
+        std::cout << "Returning: $" << args << std::endl;
+    }
+    
     if (args == "1") { //user inputs a $1 bill
         items["One Dollar Bills"].amount++;
         cashInserted += 1;
         std::cout << "One Dollar Bill inserted." << std::endl;
+        if (items["Quarters"].amount == 0 || items["Quarters"].amount == (cashInserted - 1) / 0.25) { // edge case where there's not enough quarters to give change.
+            std::cout << "Not enough quarters in storage, cannot accept $1 or $5 bills at this moment." << std::endl;
+            std::cout << "Returned: $1" << std::endl;
+            items["One Dollar Bills"].amount--;
+            cashInserted -= 1;
+        }
     }
     else if (args == "5") { //user inputs a $5 bill
         items["Five Dollar Bills"].amount++;
         cashInserted += 5;
         std::cout << "Five Dollar Bill inserted." << std::endl;
+        if (items["Quarters"].amount == 0 || items["One Dollar Bills"].amount < 4 || items["Quarters"].amount == (cashInserted - 5) / 0.25) { // edge case where there's not enough quarters or $1 bills to give change.
+            std::cout << "Not enough quarters or $1 bills in storage, cannot accept $5 bills at this moment." << std::endl;
+            std::cout << "Returned: $5" << std::endl;
+            items["Five Dollar Bills"].amount--;
+            cashInserted -= 5;
+        }
     }
     else { //user did not enter a correct value.
         //ouput usage of the bill function
@@ -432,7 +478,7 @@ void vendingMachine::chooseCola(std::string args)
     //choose a cola to trade cashInserted for cola. 
     //If there's not enough money, then ask for more. 
     //If they entered too much, then give the pop and output the extra cash.
-    //If there isn't enough change in the machine, then give back the bills instead of the pop.
+    //If there isn't enough change in the machine, ask for more cash.
 
     // find the itemName for the pop they wanted to buy
     std::string popChosen = "";
@@ -450,7 +496,18 @@ void vendingMachine::chooseCola(std::string args)
     }
 
     //pop found, continue
+    if (cashInserted < 0.75) { //not enough cash inserted into machine.
+        std::cout << "Pop costs $0.75\n";
+        std::cout << "Total cash: $" << cashInserted << std::endl;
+        std::cout << "Enter more cash to buy a pop.\n";
+        return;
+    }
+
     items[popChosen].amount--;
+    items["Cups"].amount--;
+    std::cout << "*clank, clank*\nReturned: " << popChosen << std::endl;
+    cashInserted -= 0.75;
+    returnCash();
 
 }
 
@@ -462,31 +519,26 @@ void vendingMachine::returnCash() //return the cash equal to the amount of cash 
         "Dimes",
         "Nickels" };
 
-    //find if there's enough change.
-    float tempChange = 0;
-    int cashNum = 0;
-    while (tempChange != cashInserted) { //redo this with a for statement starting at highest denomination and working it's way lower
-        cashNum = 0;
-        while (items[cashNames[cashNum]].price > cashInserted || items[cashNames[cashNum]].amount == 0) { //find the denomination of cash in the machine closest to the amount of cash inserted. has to be a lower number than the cash inserted.
-            cashNum++;
+    //return cash starting with the largest value to return
+    float cashValue;
+    for (int i = 0; i < cashNames.size(); i++) {
+        cashValue = items[cashNames[i]].price;
+        while (cashInserted >= cashValue) { //remove and return denominations of cash starting with the largest
+            if (items[cashNames[i]].amount == 0) //no denomination of this exists in the machine
+                continue;
+            cashInserted -= cashValue;
+            items[cashNames[i]].amount--;
+            std::cout << "Returned: $" << cashValue << std::endl;
         }
-        if (items[cashNames[cashNum]].amount * items[cashNames[cashNum]].price <= cashInserted) { //use all of the rest of this denomination
-            tempChange += items[cashNames[cashNum]].amount * items[cashNames[cashNum]].price;
-        }
-        else { //sum of denomination is greater than item input
-            //if I have 10 quarters and 0 $1 bills and I need to output $1.20, then output 4 quarters (and 2 dimes if I have them)
-            while (tempChange < cashInserted) {
-                tempChange += items[cashNames[cashNum]].price;
-            }
-            //it'll overflow by 1, so minus it off
-            tempChange -= items[cashNames[cashNum]].price;
-        }
-
     }
 
 }
 
 ////// Public Functions //////
+
+void vendingMachine::saveInventory() {
+
+}
 
 std::string vendingMachine::serviceMode(std::string userPassword) {
     // TODO: comment (haha)
@@ -500,10 +552,10 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
         std::cout << "[SERVICE MODE]>";
         std::getline(std::cin, command);
 
+        command = normalizeWhitespace(command); //remove unnecessary whitespace
+
         if (command == "") // literlly nothing found. This is an edge case. go back to the start of the while loop
             continue;
-
-        command = normalizeWhitespace(command);
 
         //split the command into it's arguments
         if (command.find_first_of(" ") != -1) {
@@ -552,18 +604,16 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
     }
 }
 
-// test comment
-
 std::string vendingMachine::normalMode() {
     std::string command, args;
     while (true) {
         std::cout << "[NORMAL MODE]>";
         std::getline(std::cin, command);
 
-        if (command == "") // literlly nothing inputted. This is an edge case. go back to the start of the while loop
-            continue;
+        command = normalizeWhitespace(command); //remove unnecessary whitespace
 
-        command = normalizeWhitespace(command);
+        if (command == "" || command == " ") // literlly nothing inputted. This is an edge case. go back to the start of the while loop
+            continue;
 
         //split the command into it's arguments
         if (command.find_first_of(" ") != -1) {
