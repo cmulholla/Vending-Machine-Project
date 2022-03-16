@@ -535,20 +535,30 @@ void vendingMachine::returnCash() //return the cash equal to the amount of cash 
 }
 
 ////// Public Functions //////
-
-void vendingMachine::saveInventory() {
-
+void vendingMachine::saveInventory() {// save the current inventory to the inventory file
+    std::ofstream inventoryFile("inventory.csv", std::ios::trunc); //overwrite the Inventory file
+    if (inventoryFile.is_open()) {
+        for (int i = 0; i < itemNames.size(); i++) { //scroll through the itemNames
+            inventoryFile << itemNames[i] << "," << items[itemNames[i]].amount; //output the names and amounts to the inventory CSV file
+            if (itemNames.size() > i) { //if it's the final item, don't tab down
+                inventoryFile << std::endl;
+            }
+        }
+        inventoryFile.close(); //close the inventory file
+    }
+    else {
+        std::cout << "Inventory file failed to open." << std::endl;
+    }
 }
 
-std::string vendingMachine::serviceMode(std::string userPassword) {
-    // TODO: comment (haha)
-    if (password != userPassword) {
+std::string vendingMachine::serviceMode(std::string userPassword) { //run the program in service mode
+    if (password != userPassword) { // password does not match up with the password stored in the class
         std::cout << "Invalid password, try again." << std::endl;
         return password;
     }
 
     std::string command, args;
-    while (true) {
+    while (true) { //main loop for service mode
         std::cout << "[SERVICE MODE]>";
         std::getline(std::cin, command);
 
@@ -606,7 +616,7 @@ std::string vendingMachine::serviceMode(std::string userPassword) {
 
 std::string vendingMachine::normalMode() {
     std::string command, args;
-    while (true) {
+    while (true) { //main loop for the normal mode
         std::cout << "[NORMAL MODE]>";
         std::getline(std::cin, command);
 
